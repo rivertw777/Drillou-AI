@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+pydub
+openai
+pymysql
+cryptography
+pydantic
+pydantic-settings
+sqlalchemy
+requests
+langchain-openai
+langchain_community
+faiss-cpu
