@@ -6,7 +6,6 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_core.documents import Document
 from app.core.config import settings
 from sqlalchemy.orm import Session
-
 from app.models.contract_keyword import ContractKeyword
 from app.repositories.contract_keyword import ContractKeywordRepository
 
@@ -21,7 +20,7 @@ class LLMService:
     """
          텍스트 파일에서 계약 키워드 추출, 저장
     """
-    async def extract_contract_keywords(self, transcription: str, client_id: int):
+    def extract_contract_keywords(self, transcription: str, client_id: int):
         result = self.query_llm(transcription, self.setup_question())
         result_dict = self.result_parsing(result)
 
@@ -32,6 +31,8 @@ class LLMService:
                                         end_date=result_dict.get("end_date"))
 
         ContractKeywordRepository.save(self.db, keyword_model)
+
+        return result_dict
 
     def query_llm(self, transcription: str, question: str):
         vectorstore = self._setup_vectorstore(transcription)

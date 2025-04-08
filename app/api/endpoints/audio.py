@@ -1,30 +1,33 @@
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
-from sqlalchemy.orm import Session
-from app.core.database import get_db
-from app.services.audio_service import AudioService
-from app.services.llm_service import LLMService
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+
+from app.tasks.convert_audio_to_text import convert_audio_to_text
+from app.tasks.extract_keyword_from_text import extract_keyword_from_text
 from app.utils.file_handler import save_upload_file
+from celery import chain
 
 router = APIRouter()
 
 
 # TODO: 음성 파일 AWS S3 관리
 @router.post("/audio/process/")
-async def process_audio(
-    client_id: int,
-    audio_file: UploadFile = File(...),
-    db: Session = Depends(get_db),
+def process_audio(
+        client_id: int = Form(...),
+        audio_file: UploadFile = File(...),
 ):
     try:
         # 음성 파일 저장
-        audio_file_path = await save_upload_file(audio_file)
+        audio_file_path = save_upload_file(audio_file)
 
-        # 음성 파일 텍스트 변환
-        transcription = await AudioService(db=db).process_audio_file(audio_file_path, audio_file.filename, client_id)
+        task_chain = chain(
+            convert_audio_to_text.s(audio_file_path, audio_file.filename, client_id),  # 텍스트 변환
+            extract_keyword_from_text.s()  # 키워드 추출
+        )
 
-        # 계약 키워드 추출
-        await LLMService(db=db).extract_contract_keywords(transcription, client_id)
+        result = task_chain.apply_async()
 
-        return {"message": "작업 완료"}
+        return {
+            "message": "음성 파일이 저장되었습니다. 비동기 작업이 시작됩니다.",
+            "task_id": result.id
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

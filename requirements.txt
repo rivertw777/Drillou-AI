@@ -11,3 +11,8 @@ requests
 langchain-openai
 langchain_community
 faiss-cpu
+redis
+flower
+celery
+eventlet
+python-multipart

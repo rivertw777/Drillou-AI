@@ -13,20 +13,19 @@ class AudioService:
     def __init__(self, db: Session):
         self.db = db
         self.api_key = settings.OPENAI_API_KEY
-        self.audio_dir = "../audio"
-        self.chunks_dir = os.path.join(self.audio_dir, "chunks")
 
-        # Ensure directories exist
-        os.makedirs(self.audio_dir, exist_ok=True)
+        # 폴더 생성
+        app_dir = os.path.dirname(os.path.dirname(__file__))
+        self.chunks_dir = os.path.join(app_dir, "downloads/audio/chunks")
         os.makedirs(self.chunks_dir, exist_ok=True)
 
     """
         음성 파일을 청크로 나누고 텍스트로 변환, 저장
     """
-    async def process_audio_file(self, audio_file_path: str, filename: str, client_id: int) -> str:
-        chunk_files = self._cut_audio_in_chunks(audio_file_path, filename)
+    def convert_audio_to_text(self, audio_file_path: str, filename: str, client_id: int) -> str:
+        chunk_file_paths = self._cut_audio_in_chunks(audio_file_path, filename)
         try:
-            transcription = self._transcribe_chunks(chunk_files)
+            transcription = self._transcribe_chunks(chunk_file_paths)
 
             transcription_model = AudioTranscription(client_id=client_id, audio_file_path=audio_file_path, transcription=transcription)
 
@@ -34,7 +33,7 @@ class AudioService:
 
             return transcription
         finally:
-            self._cleanup_chunk_files(chunk_files)
+            self.cleanup_files(audio_file_path, chunk_file_paths)
 
     def _cut_audio_in_chunks(self, audio_file_path: str, filename: str) -> list:
         track = AudioSegment.from_file(audio_file_path)
@@ -44,17 +43,17 @@ class AudioService:
 
         # Calculate total number of chunks
         chunks = math.ceil(len(track) / chunk_len)
-        chunk_files = []
+        chunk_file_paths = []
 
         for i in range(chunks):
             start_time = i * chunk_len
             end_time = min((i + 1) * chunk_len, len(track))
             chunk = track[start_time:end_time]
-            chunk_file_path = f"{self.chunks_dir}/{filename}_chunk_{i}.mp3"
+            chunk_file_path = os.path.join(self.chunks_dir, f"{filename}_chunk_{i}.mp3")
             chunk.export(chunk_file_path, format="mp3")
-            chunk_files.append(chunk_file_path)
+            chunk_file_paths.append(chunk_file_path)
 
-        return chunk_files
+        return chunk_file_paths
 
     def _transcribe_chunks(self, chunk_files: list) -> str:
         final_transcript = ""
@@ -80,6 +79,7 @@ class AudioService:
         return final_transcript.strip()
 
     @staticmethod
-    def _cleanup_chunk_files(chunk_files: list) -> None:
+    def cleanup_files(audio_file_path: str, chunk_files: list) -> None:
+        os.remove(audio_file_path)
         for file_path in chunk_files:
             os.remove(file_path)

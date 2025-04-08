@@ -3,8 +3,10 @@ import shutil
 from fastapi import UploadFile
 
 
-async def save_upload_file(upload_file: UploadFile) -> str:
-    audio_dir = "../audio"
+def save_upload_file(upload_file: UploadFile) -> str:
+    # 폴더 생성
+    app_dir = os.path.dirname(os.path.dirname(__file__))
+    audio_dir = os.path.join(app_dir, "downloads/audio")
     os.makedirs(audio_dir, exist_ok=True)
 
     audio_file_path = os.path.join(audio_dir, upload_file.filename)
