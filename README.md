@@ -1,7 +1,7 @@
 ## 😡 Project Architecture
 <br>
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/3fa480c4-7570-415d-92b9-6530504efd16" width="80%">
+  <img src="https://github.com/user-attachments/assets/280732e8-cec3-401c-b87e-e5f145097f9c" width="80%">
 </p>
 <br>
 
